@@ -5,9 +5,13 @@ import java.util.Map;
 
 public class SymbolTable {
     private final Map<String, Integer> symbolTable;
+    private int variableAddress;
+    private int currentLineNumber;
 
     public SymbolTable() {
         symbolTable = new HashMap<>();
+        variableAddress = 16;
+        currentLineNumber = 0;
 
         // Predefined keys
         // Memory segments
@@ -40,8 +44,20 @@ public class SymbolTable {
         symbolTable.put("KBD", 24576);
     }
 
-    public void addEntry(String symbol, int address) {
-        symbolTable.put(symbol, address);
+    public void addVariableEntry(String symbol) {
+        symbolTable.put(symbol, variableAddress++);
+    }
+
+    public void addLabelEntry(String symbol) {
+        symbolTable.put(symbol, currentLineNumber);
+    }
+
+    public int getCurrentLineNumber() {
+        return currentLineNumber;
+    }
+
+    public void incrementCurrentLineNumber() {
+        currentLineNumber++;
     }
 
     public boolean contains(String symbol) {

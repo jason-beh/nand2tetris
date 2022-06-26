@@ -21,7 +21,6 @@ public class Parser {
         try {
             reader = new Scanner(new FileReader(filename));
             advance();
-            advance();
         } catch(IOException e) {
             e.printStackTrace();
         }
@@ -72,20 +71,25 @@ public class Parser {
     public String comp() {
         int delimiter = currentInstruction.indexOf("=");
         if (delimiter != -1) {
-            return currentInstruction.substring(delimiter + 1);
+            return currentInstruction.substring(delimiter + 1).trim();
         }
 
         delimiter = currentInstruction.indexOf(";");
-        return currentInstruction.substring(0, delimiter);
+        return currentInstruction.substring(0, delimiter).trim();
     }
 
 
     public boolean hasMoreLines() {
-        return reader.hasNextLine();
+        return reader.hasNextLine() || nextInstruction != null;
     }
 
     public void advance() {
         currentInstruction = nextInstruction;
+        if(currentInstruction != null) {
+            currentInstruction = currentInstruction.trim();
+        }
+
+        nextInstruction = null;
 
         // find the next valid line
         String tempNextInstruction;
@@ -97,9 +101,10 @@ public class Parser {
             tempNextInstruction = reader.nextLine();
 
             if(tempNextInstruction == null) {
+                nextInstruction = null;
                 return;
             }
-        } while(isEmptyLine(tempNextInstruction) || isComment(tempNextInstruction));
+        } while((isEmptyLine(tempNextInstruction) || isComment(tempNextInstruction)) && hasMoreLines());
 
         // trim inline comment if exist
         int commentIdx = tempNextInstruction.indexOf("//");
@@ -116,5 +121,9 @@ public class Parser {
 
     private boolean isComment(String line) {
         return line.trim().startsWith("//");
+    }
+
+    public void close() {
+        reader.close();
     }
 }

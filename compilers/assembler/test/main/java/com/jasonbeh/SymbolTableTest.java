@@ -17,13 +17,19 @@ public class SymbolTableTest {
     }
 
     @Test
+    public void testIncrementLineNumber(){
+        symbolTable.incrementCurrentLineNumber();
+        assertEquals(1, symbolTable.getCurrentLineNumber());
+    }
+
+    @Test
     public void containsSPWithoutAdding() {
         assertTrue(symbolTable.contains("SP"));
     }
 
     @Test
     public void containsSPAfterAdding() {
-        symbolTable.addEntry("SP", 1000);
+        symbolTable.addVariableEntry("SP");
         assertTrue(symbolTable.contains("SP"));
     }
 
@@ -34,13 +40,15 @@ public class SymbolTableTest {
 
     @Test
     public void obtainSPAddressAfterChanging() {
-        symbolTable.addEntry("SP", 1000);
-        assertEquals(1000, symbolTable.getAddress("SP"));
+        symbolTable.addVariableEntry("SP");
+        assertEquals(16, symbolTable.getAddress("SP"));
     }
 
     @Test
-    public void addCustomSymbol() {
-        symbolTable.addEntry("SCOOBYDOO", 1321);
-        assertEquals(1321, symbolTable.getAddress("SCOOBYDOO"));
+    public void obtainLabelAddressAfterAdding() {
+        symbolTable.incrementCurrentLineNumber();
+        symbolTable.incrementCurrentLineNumber();
+        symbolTable.addLabelEntry("LOOP");
+        assertEquals(2, symbolTable.getAddress("LOOP"));
     }
 }

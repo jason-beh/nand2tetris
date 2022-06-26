@@ -49,6 +49,7 @@ public class Code {
         compMap.put("M+1", "1110111");
         compMap.put("M-1", "1110010");
         compMap.put("D+M", "1000010");
+        compMap.put("M+D", "1000010");
         compMap.put("D-M", "1010011");
         compMap.put("M-D", "1000111");
         compMap.put("D&M", "1000000");
@@ -66,14 +67,36 @@ public class Code {
     }
 
     public String dest(String code) {
+        code = trimCode(code);
+        if(!destMap.containsKey(code)) {
+            return destMap.get("NULL");
+        }
+
         return destMap.get(code);
     }
 
     public String comp(String code) {
+        code = trimCode(code);
+        if(!compMap.containsKey(code)) {
+            System.out.println(code);
+        }
         return compMap.get(code);
     }
 
     public String jump(String code) {
+        code = trimCode(code);
+        if(!jumpMap.containsKey(code)) {
+            return jumpMap.get("NULL");
+        }
+
         return jumpMap.get(code);
+    }
+
+    private String trimCode(String code) {
+        if(code != null) {
+            return code.trim();
+        }
+
+        return null;
     }
 }

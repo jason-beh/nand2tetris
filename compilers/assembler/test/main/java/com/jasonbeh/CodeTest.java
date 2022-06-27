@@ -21,7 +21,7 @@ public class CodeTest {
 
     @Test
     public void getDestThatDoesNotExist() {
-        assertNull(code.dest("I_DON'T_EXIST"));
+        assertEquals("000", code.dest("I_DON'T_EXIST"));
     }
 
     @Test
@@ -41,6 +41,6 @@ public class CodeTest {
 
     @Test
     public void getJumpThatDoesNotExist() {
-        assertNull(code.jump("I_DON'T_EXIST"));
+        assertEquals("000", code.jump("I_DON'T_EXIST"));
     }
 }

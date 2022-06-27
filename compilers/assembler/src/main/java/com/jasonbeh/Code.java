@@ -77,9 +77,6 @@ public class Code {
 
     public String comp(String code) {
         code = trimCode(code);
-        if(!compMap.containsKey(code)) {
-            System.out.println(code);
-        }
         return compMap.get(code);
     }
 

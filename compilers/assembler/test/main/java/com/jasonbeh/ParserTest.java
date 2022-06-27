@@ -43,6 +43,7 @@ public class ParserTest {
         writer.close();
 
         parser = new Parser(currentFile.getAbsolutePath());
+        parser.advance();
         assertEquals(Parser.Instruction.A_INSTRUCTION, parser.instructionType());
     }
 
@@ -52,6 +53,7 @@ public class ParserTest {
         writer.close();
 
         parser = new Parser(currentFile.getAbsolutePath());
+        parser.advance();
         assertEquals(Parser.Instruction.C_INSTRUCTION, parser.instructionType());
     }
 
@@ -61,6 +63,7 @@ public class ParserTest {
         writer.close();
 
         parser = new Parser(currentFile.getAbsolutePath());
+        parser.advance();
         assertEquals(Parser.Instruction.L_INSTRUCTION, parser.instructionType());
     }
 
@@ -71,6 +74,7 @@ public class ParserTest {
         writer.close();
 
         parser = new Parser(currentFile.getAbsolutePath());
+        parser.advance();
         assertEquals("sum", parser.symbol());
     }
 
@@ -80,6 +84,7 @@ public class ParserTest {
         writer.close();
 
         parser = new Parser(currentFile.getAbsolutePath());
+        parser.advance();
         assertEquals("INFINITE_LOOP", parser.symbol());
     }
 
@@ -90,6 +95,7 @@ public class ParserTest {
         writer.close();
 
         parser = new Parser(currentFile.getAbsolutePath());
+        parser.advance();
         assertEquals("D", parser.dest());
     }
 
@@ -99,6 +105,7 @@ public class ParserTest {
         writer.close();
 
         parser = new Parser(currentFile.getAbsolutePath());
+        parser.advance();
         assertEquals("M", parser.dest());
     }
 
@@ -108,6 +115,7 @@ public class ParserTest {
         writer.close();
 
         parser = new Parser(currentFile.getAbsolutePath());
+        parser.advance();
         assertEquals("AMD", parser.dest());
     }
 
@@ -118,6 +126,7 @@ public class ParserTest {
         writer.close();
 
         parser = new Parser(currentFile.getAbsolutePath());
+        parser.advance();
         assertEquals("D", parser.comp());
     }
 
@@ -127,6 +136,7 @@ public class ParserTest {
         writer.close();
 
         parser = new Parser(currentFile.getAbsolutePath());
+        parser.advance();
         assertEquals("!M", parser.comp());
     }
 
@@ -136,6 +146,7 @@ public class ParserTest {
         writer.close();
 
         parser = new Parser(currentFile.getAbsolutePath());
+        parser.advance();
         assertEquals("A", parser.comp());
     }
 
@@ -145,6 +156,7 @@ public class ParserTest {
         writer.close();
 
         parser = new Parser(currentFile.getAbsolutePath());
+        parser.advance();
         assertEquals("M", parser.comp());
     }
 
@@ -155,6 +167,7 @@ public class ParserTest {
         writer.close();
 
         parser = new Parser(currentFile.getAbsolutePath());
+        parser.advance();
         assertEquals("JLT", parser.jump());
     }
 
@@ -164,6 +177,7 @@ public class ParserTest {
         writer.close();
 
         parser = new Parser(currentFile.getAbsolutePath());
+        parser.advance();
         assertEquals("JMP", parser.jump());
     }
 
@@ -173,6 +187,7 @@ public class ParserTest {
         writer.close();
 
         parser = new Parser(currentFile.getAbsolutePath());
+        parser.advance();
         assertFalse(parser.hasMoreLines());
     }
 
@@ -184,6 +199,7 @@ public class ParserTest {
         writer.close();
 
         parser = new Parser(currentFile.getAbsolutePath());
+        parser.advance();
         assertTrue(parser.hasMoreLines());
     }
 }

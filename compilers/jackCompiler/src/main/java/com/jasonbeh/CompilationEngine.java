@@ -10,7 +10,6 @@ public class CompilationEngine {
         public String getName() {
             return name;
         }
-
         public String getType() {
             return type;
         }
@@ -34,7 +33,7 @@ public class CompilationEngine {
     }
 
     private void advanceTokenIfPossible() {
-        if(jackTokenizer.hasMoreTokens()) {
+        if (jackTokenizer.hasMoreTokens()) {
             jackTokenizer.advance();
         }
     }
@@ -58,7 +57,7 @@ public class CompilationEngine {
         compileClassVarDec();
 
         // class level subroutines (methods, constructors, functions)
-        while(!(isCurrentTokenSymbol('}'))) {
+        while (!(isCurrentTokenSymbol('}'))) {
             compileSubroutine();
         }
 
@@ -72,9 +71,9 @@ public class CompilationEngine {
         // e.g. field int num1, num2, num3;
         // e.g. static int classSize
 
-        while(jackTokenizer.tokenType() == JackTokenizer.TokenType.TOKEN_KEYWORD) {
+        while (jackTokenizer.tokenType() == JackTokenizer.TokenType.TOKEN_KEYWORD) {
             // ensure it is static or field for class level variables
-            if(!(jackTokenizer.keyword().equals("static") || jackTokenizer.keyword().equals("field"))) {
+            if (!(jackTokenizer.keyword().equals("static") || jackTokenizer.keyword().equals("field"))) {
                 continue;
             }
 
@@ -90,7 +89,7 @@ public class CompilationEngine {
             List<String> varNames = getVarNames();
 
             // populate symbol table
-            for(String varName : varNames) {
+            for (String varName : varNames) {
                 symbolTable.define(varName, varDataType, symbolTable.stringToKind(varKind));
             }
         }
@@ -117,7 +116,7 @@ public class CompilationEngine {
         symbolTable.initializeSubroutineScope();
 
         // adjust for method type of subroutine
-        if(subroutineType.equals("method")) {
+        if (subroutineType.equals("method")) {
             symbolTable.adjustMethodSymbolTable();
         }
 
@@ -127,7 +126,7 @@ public class CompilationEngine {
 
         // Parameters List
         List<Variable> parameterList = compileParameterList();
-        for(Variable param: parameterList) {
+        for (Variable param : parameterList) {
             symbolTable.define(param.getName(), param.getType(), SymbolTable.Kind.KIND_ARG);
         }
 
@@ -141,7 +140,7 @@ public class CompilationEngine {
 
         // Local Variables List
         List<Variable> localVariablesList = compileVarDec();
-        for(Variable localVariable: localVariablesList) {
+        for (Variable localVariable : localVariablesList) {
             symbolTable.define(localVariable.getName(), localVariable.getType(), SymbolTable.Kind.KIND_VAR);
         }
 
@@ -150,10 +149,10 @@ public class CompilationEngine {
         vmWriter.writeFunction(functionNameInVM, symbolTable.varCount(SymbolTable.Kind.KIND_VAR));
 
         // After pushing all parameters and local variables, we can write actual VM code
-        if(subroutineType.equals("method")) {
+        if (subroutineType.equals("method")) {
             vmWriter.writePush(VMWriter.Segment.SEG_ARGUMENT, 0);
             vmWriter.writePop(VMWriter.Segment.SEG_POINTER, 0);
-        } else if(subroutineType.equals("constructor")) {
+        } else if (subroutineType.equals("constructor")) {
             vmWriter.writePush(VMWriter.Segment.SEG_CONSTANT, symbolTable.varCount(SymbolTable.Kind.KIND_FIELD));
             vmWriter.writeCall("Memory.alloc", 1);
             vmWriter.writePop(VMWriter.Segment.SEG_POINTER, 0);
@@ -171,10 +170,10 @@ public class CompilationEngine {
         // e.g. method void customFunction(int num, boolean isTrue) { statements }
 
         List<Variable> parameters = new ArrayList<>();
-        while(!isCurrentTokenSymbol(')')) {
+        while (!isCurrentTokenSymbol(')')) {
 
             // process comma if we encounter it
-            if(isCurrentTokenSymbol(',')) {
+            if (isCurrentTokenSymbol(',')) {
                 jackTokenizer.symbol();
                 advanceTokenIfPossible();
             }
@@ -196,7 +195,7 @@ public class CompilationEngine {
         // e.g. var int num1, num2;
         List<Variable> variables = new ArrayList<>();
 
-        while(isCurrentTokenKeyword("var")) {
+        while (isCurrentTokenKeyword("var")) {
             // var
             jackTokenizer.keyword();
             advanceTokenIfPossible();
@@ -207,7 +206,7 @@ public class CompilationEngine {
             // get all list of variable names
             List<String> varNames = getVarNames();
 
-            for(String varName: varNames) {
+            for (String varName : varNames) {
                 variables.add(new Variable(varName, varType));
             }
         }
@@ -217,16 +216,16 @@ public class CompilationEngine {
 
     private void compileStatements() throws IOException {
         // Controller for let, while, if, do or return statement
-        while(!isCurrentTokenSymbol('}')) {
-            if(isCurrentTokenKeyword("return")) {
+        while (!isCurrentTokenSymbol('}')) {
+            if (isCurrentTokenKeyword("return")) {
                 compileReturn();
-            } else if(isCurrentTokenKeyword("let")) {
+            } else if (isCurrentTokenKeyword("let")) {
                 compileLet();
-            } else if(isCurrentTokenKeyword("while")) {
+            } else if (isCurrentTokenKeyword("while")) {
                 compileWhile();
-            } else if(isCurrentTokenKeyword("if")) {
+            } else if (isCurrentTokenKeyword("if")) {
                 compileIf();
-            } else if(isCurrentTokenKeyword("do")) {
+            } else if (isCurrentTokenKeyword("do")) {
                 compileDo();
             }
         }
@@ -245,7 +244,7 @@ public class CompilationEngine {
         advanceTokenIfPossible();
 
         // array indexing
-        if(isCurrentTokenSymbol('[')) {
+        if (isCurrentTokenSymbol('[')) {
             // Push current varName to setup for subsequent calculation
             vmWriter.writePush(vmWriter.stringToSegment(symbolTable.kindOf(varName)), symbolTable.indexOf(varName));
 
@@ -278,7 +277,7 @@ public class CompilationEngine {
             // Pop to that 0
             vmWriter.writePop(VMWriter.Segment.SEG_THAT, 0);
 
-        } else if(isCurrentTokenSymbol('=')) {
+        } else if (isCurrentTokenSymbol('=')) {
             // Assignment only (e.g. let num = 3)
 
             // =
@@ -297,13 +296,13 @@ public class CompilationEngine {
         }
     }
 
-    private int compileExpressionList() {
+    private int compileExpressionList() throws IOException {
         // e.g. var int x,y;
 
         int numExpressions = 0;
         numExpressions += compileExpression();
 
-        while(isCurrentTokenSymbol(',')) {
+        while (isCurrentTokenSymbol(',')) {
             // ;
             jackTokenizer.symbol();
             advanceTokenIfPossible();
@@ -365,7 +364,7 @@ public class CompilationEngine {
         advanceTokenIfPossible();
 
         // if nothing is explicitly returned
-        if(isCurrentTokenSymbol(';')) {
+        if (isCurrentTokenSymbol(';')) {
             // By default, we return 0, although there's no explicit return
             vmWriter.writePush(VMWriter.Segment.SEG_CONSTANT, 0);
         } else {
@@ -418,7 +417,7 @@ public class CompilationEngine {
         vmWriter.writeLabel("IF_FALSE" + counter);
 
         // Parse else block if exist
-        if(isCurrentTokenKeyword("else")) {
+        if (isCurrentTokenKeyword("else")) {
             // else
             jackTokenizer.keyword();
             advanceTokenIfPossible();
@@ -437,13 +436,6 @@ public class CompilationEngine {
 
         vmWriter.writeLabel("IF_END" + counter);
         counter++;
-    }
-
-    private int compileExpression() {
-        return -1;
-    }
-
-    private void compileTerm() {
     }
 
     private void compileDo() throws IOException {
@@ -473,7 +465,7 @@ public class CompilationEngine {
         varNames.add(jackTokenizer.identifier());
         advanceTokenIfPossible();
 
-        while(!isCurrentTokenSymbol(';')) {
+        while (!isCurrentTokenSymbol(';')) {
             // ,
             jackTokenizer.symbol();
             advanceTokenIfPossible();
@@ -498,6 +490,241 @@ public class CompilationEngine {
         return jackTokenizer.tokenType() == JackTokenizer.TokenType.TOKEN_KEYWORD && jackTokenizer.keyword().equals(keyword);
     }
 
+    // We return 1 if we compiled, otherwise 0
+    // The return exists to facilitate compileExpressionList
+    private int compileExpression() throws IOException {
+        // e.g. num1 + num2
+
+        if (jackTokenizer.tokenType() == JackTokenizer.TokenType.TOKEN_INT_CONST
+         || jackTokenizer.tokenType() == JackTokenizer.TokenType.TOKEN_STRING_CONST
+         || isCurrentTokenSymbol('(') // e.g. (num1 + num2)
+         || isCurrentTokenSymbol('-') // negative (unary)
+         || isCurrentTokenSymbol('~') // not (unary)
+         || isCurrentTokenKeyword("true") // true (keywordConstant)
+         || isCurrentTokenKeyword("false") // false (keywordConstant)
+         || isCurrentTokenKeyword("null") // null (keywordConstant)
+         || isCurrentTokenKeyword("this") // this (keywordConstant)
+         || jackTokenizer.tokenType() == JackTokenizer.TokenType.TOKEN_IDENTIFIER) {
+
+            // Compile the current term
+            compileTerm();
+
+            while (isCurrentTokenSymbol('+')
+                || isCurrentTokenSymbol('-')
+                || isCurrentTokenSymbol('*')
+                || isCurrentTokenSymbol('/')
+                || isCurrentTokenSymbol('&')
+                || isCurrentTokenSymbol('|')
+                || isCurrentTokenSymbol('<')
+                || isCurrentTokenSymbol('>')
+                || isCurrentTokenSymbol('=')) {
+                char operator = jackTokenizer.symbol();
+                advanceTokenIfPossible();
+
+                // Compile the next term
+                compileTerm();
+
+                // Write VM code based on operator
+                switch (operator) {
+                    case '+' -> vmWriter.writeArithmetic(VMWriter.ArithmeticCmd.ARITHMETIC_ADD);
+                    case '-' -> vmWriter.writeArithmetic(VMWriter.ArithmeticCmd.ARITHMETIC_SUB);
+                    case '&' -> vmWriter.writeArithmetic(VMWriter.ArithmeticCmd.ARITHMETIC_AND);
+                    case '|' -> vmWriter.writeArithmetic(VMWriter.ArithmeticCmd.ARITHMETIC_OR);
+                    case '<' -> vmWriter.writeArithmetic(VMWriter.ArithmeticCmd.ARITHMETIC_LT);
+                    case '>' -> vmWriter.writeArithmetic(VMWriter.ArithmeticCmd.ARITHMETIC_GT);
+                    case '=' -> vmWriter.writeArithmetic(VMWriter.ArithmeticCmd.ARITHMETIC_EQ);
+
+                    case '*' -> vmWriter.writeCall("Math.multiply", 2);
+                    case '/' -> vmWriter.writeCall("Math.divide", 2);
+                }
+            }
+
+            // We successfully compiled one expression
+            return 1;
+        }
+
+        // We didn't compile anything
+        return 0;
+    }
+
+    private void compileTerm() throws IOException {
+        if(jackTokenizer.tokenType() == JackTokenizer.TokenType.TOKEN_INT_CONST) {
+            int intValue = jackTokenizer.intVal();
+            advanceTokenIfPossible();
+
+            vmWriter.writePush(VMWriter.Segment.SEG_CONSTANT, intValue);
+            return;
+        }
+
+        if(jackTokenizer.tokenType() == JackTokenizer.TokenType.TOKEN_STRING_CONST) {
+            String stringValue = jackTokenizer.stringVal();
+            advanceTokenIfPossible();
+
+            int stringLength = stringValue.length();
+
+            // VM code to create a string by calling appendCar n times
+            vmWriter.writePush(VMWriter.Segment.SEG_CONSTANT, stringLength);
+            vmWriter.writeCall("String.new", 1);
+            for(int c = 0; c < stringLength; c++) {
+                vmWriter.writePush(VMWriter.Segment.SEG_CONSTANT, stringValue.charAt(c));
+                vmWriter.writeCall("String.appendChar", 2);
+            }
+
+            return;
+        }
+
+        // Compile unary
+        if(isCurrentTokenSymbol('-') || isCurrentTokenSymbol('~')) {
+            // e.g. ~isSafeToEat
+
+            char operator = jackTokenizer.symbol();
+            advanceTokenIfPossible();
+
+            // Compile the following term
+            compileTerm();
+
+            // Write VM Code
+            switch (operator) {
+                case '-' -> vmWriter.writeArithmetic(VMWriter.ArithmeticCmd.ARITHMETIC_NEG);
+                case '~' -> vmWriter.writeArithmetic(VMWriter.ArithmeticCmd.ARITHMETIC_NOT);
+            }
+
+            return;
+        }
+
+        if(isCurrentTokenSymbol('(')) {
+            // (
+            jackTokenizer.symbol();
+            advanceTokenIfPossible();
+
+            // compile rest of expression
+            compileExpression();
+
+            // )
+            jackTokenizer.symbol();
+            advanceTokenIfPossible();
+
+            return;
+        }
+
+        // Compile keywordConstant
+        if(isCurrentTokenKeyword("true") || isCurrentTokenKeyword("false") || isCurrentTokenKeyword("null") || isCurrentTokenKeyword("this")) {
+            String keyword = jackTokenizer.keyword();
+            advanceTokenIfPossible();
+
+            switch (keyword) {
+                case "this" -> vmWriter.writePush(VMWriter.Segment.SEG_THIS, 0);
+                case "null", "false" -> vmWriter.writePush(VMWriter.Segment.SEG_CONSTANT, 0);
+                case "true" -> {
+                    // When we not 0, it becomes -1 (true)
+                    vmWriter.writePush(VMWriter.Segment.SEG_CONSTANT, 0);
+                    vmWriter.writeArithmetic(VMWriter.ArithmeticCmd.ARITHMETIC_NOT);
+                }
+            }
+
+            return;
+        }
+
+        if(jackTokenizer.tokenType() == JackTokenizer.TokenType.TOKEN_IDENTIFIER) {
+            String initialIdentifier = jackTokenizer.identifier();
+            advanceTokenIfPossible();
+
+            if(isCurrentTokenSymbol('[')) {
+                // Push variable to top of stack
+                vmWriter.writePush(vmWriter.stringToSegment(symbolTable.kindOf(initialIdentifier)), symbolTable.indexOf(initialIdentifier));
+
+                // [
+                jackTokenizer.symbol();
+                advanceTokenIfPossible();
+
+                // Compile rest of expression in []
+                compileExpression();
+
+                // ]
+                jackTokenizer.symbol();
+                advanceTokenIfPossible();
+
+                // Add them together
+                vmWriter.writeArithmetic(VMWriter.ArithmeticCmd.ARITHMETIC_ADD);
+
+                // Calibrate that segment
+                vmWriter.writePop(VMWriter.Segment.SEG_POINTER, 1);
+                vmWriter.writePush(VMWriter.Segment.SEG_THAT, 0);
+
+                return;
+            }
+
+            // A method is called on current object
+            if(isCurrentTokenSymbol('(')) {
+                // Push "this" onto stack
+                vmWriter.writePush(VMWriter.Segment.SEG_POINTER, 0);                                             // class object
+
+                // (
+                jackTokenizer.symbol();
+                advanceTokenIfPossible();
+
+                // Get number of arguments
+                int nArgs = compileExpressionList();
+
+                // )
+                jackTokenizer.symbol();
+                advanceTokenIfPossible();
+
+                // We add one because we pushed "this" onto the stack, with the first statement
+                // e.g. call Square.calculateArea 2
+                vmWriter.writeCall(className + "." + initialIdentifier, nArgs + 1);
+
+                return;
+            }
+
+            if(isCurrentTokenSymbol('.')) {
+                // .
+                jackTokenizer.symbol();
+                advanceTokenIfPossible();
+
+                String subsequentIdentifier = jackTokenizer.identifier();
+                advanceTokenIfPossible();
+
+                // If we can't find the initial identifier in the symbol table, it must belong to another class
+                if(symbolTable.indexOf(initialIdentifier) < 0) {
+                    // (
+                    jackTokenizer.symbol();
+                    advanceTokenIfPossible();
+
+                    // Get number of arguments
+                    int nArgs = compileExpressionList();
+
+                    // )
+                    jackTokenizer.symbol();
+                    advanceTokenIfPossible();
+
+                    // Call subroutine from another class
+                    vmWriter.writeCall(initialIdentifier + "." + subsequentIdentifier, nArgs);
+                } else {
+                    vmWriter.writePush(vmWriter.stringToSegment(symbolTable.kindOf(initialIdentifier)), symbolTable.indexOf(initialIdentifier));
+
+                    // (
+                    jackTokenizer.symbol();
+                    advanceTokenIfPossible();
+
+                    // Get number of arguments
+                    int nArgs = compileExpressionList();
+
+                    // )
+                    jackTokenizer.symbol();
+                    advanceTokenIfPossible();
+
+                    // e.g. call this.eat 3
+                    vmWriter.writeCall(symbolTable.typeOf(initialIdentifier) + "." + subsequentIdentifier, nArgs + 1);
+                }
+
+                return;
+            }
+
+            // If it's not any of the above, just add the identifier to symbol table
+            vmWriter.writePush(vmWriter.stringToSegment(symbolTable.kindOf(initialIdentifier)), symbolTable.indexOf(initialIdentifier));
+        }
+    }
 
     public void close() throws IOException {
         vmWriter.close();

@@ -38,7 +38,7 @@ public class CompilationEngine {
         }
     }
 
-    private void compileClass() throws IOException {
+    public void compileClass() throws IOException {
         // e.g. class Person { statements }
 
         // class

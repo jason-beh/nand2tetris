@@ -44,13 +44,15 @@ public class VMWriter {
         VM_RETURN
     }
 
-    private Map<Segment, String> segmentMapping;
+    private Map<Segment, String> segmentToStringMapping;
+    private Map<String, Segment> stringToSegmentMapping;
     private Map<ArithmeticCmd, String> arithmeticCmdMapping;
     private Map<VmCmd, String> vmCmdMapping;
 
     public VMWriter(File output) {
         try {
-            initializeSegmentMapping();
+            initializeSegmentToStringMapping();
+            initializeStringToSegmentMapping();
             initializeArithmeticCmdMapping();
             initializeVMCmdMapping();
             vmCode = new BufferedWriter(new FileWriter(output));
@@ -59,16 +61,28 @@ public class VMWriter {
         }
     }
 
-    private void initializeSegmentMapping() {
-        segmentMapping = new HashMap<>();
-        segmentMapping.put(Segment.SEG_CONSTANT, "constant");
-        segmentMapping.put(Segment.SEG_ARGUMENT, "argument");
-        segmentMapping.put(Segment.SEG_LOCAL, "local");
-        segmentMapping.put(Segment.SEG_STATIC, "static");
-        segmentMapping.put(Segment.SEG_THIS, "this");
-        segmentMapping.put(Segment.SEG_THAT, "that");
-        segmentMapping.put(Segment.SEG_POINTER, "pointer");
-        segmentMapping.put(Segment.SEG_TEMP, "temp");
+    private void initializeSegmentToStringMapping() {
+        segmentToStringMapping = new HashMap<>();
+        segmentToStringMapping.put(Segment.SEG_CONSTANT, "constant");
+        segmentToStringMapping.put(Segment.SEG_ARGUMENT, "argument");
+        segmentToStringMapping.put(Segment.SEG_LOCAL, "local");
+        segmentToStringMapping.put(Segment.SEG_STATIC, "static");
+        segmentToStringMapping.put(Segment.SEG_THIS, "this");
+        segmentToStringMapping.put(Segment.SEG_THAT, "that");
+        segmentToStringMapping.put(Segment.SEG_POINTER, "pointer");
+        segmentToStringMapping.put(Segment.SEG_TEMP, "temp");
+    }
+
+    private void initializeStringToSegmentMapping() {
+        stringToSegmentMapping = new HashMap<>();
+        stringToSegmentMapping.put("constant", Segment.SEG_CONSTANT);
+        stringToSegmentMapping.put("argument", Segment.SEG_ARGUMENT);
+        stringToSegmentMapping.put("local", Segment.SEG_LOCAL);
+        stringToSegmentMapping.put("static", Segment.SEG_STATIC);
+        stringToSegmentMapping.put("this", Segment.SEG_THIS);
+        stringToSegmentMapping.put("that", Segment.SEG_THAT);
+        stringToSegmentMapping.put("pointer", Segment.SEG_POINTER);
+        stringToSegmentMapping.put("temp", Segment.SEG_TEMP);
     }
 
     private void initializeArithmeticCmdMapping() {
@@ -96,16 +110,20 @@ public class VMWriter {
         vmCmdMapping.put(VmCmd.VM_RETURN, "return");
     }
 
+    public Segment stringToSegment(String segmentString) {
+        return stringToSegment(segmentString);
+    }
+
     private void writeVMLine(String line) throws IOException {
         vmCode.append(line).append("\n");
     }
 
     public void writePush(Segment segment, int index) throws IOException {
-        writeVMLine(vmCmdMapping.get(VmCmd.VM_PUSH) + " " + segmentMapping.get(segment) + " " + index);
+        writeVMLine(vmCmdMapping.get(VmCmd.VM_PUSH) + " " + segmentToStringMapping.get(segment) + " " + index);
     }
 
     public void writePop(Segment segment, int index) throws IOException {
-        String line = vmCmdMapping.get(VmCmd.VM_POP) + " " + segmentMapping.get(segment) + " " + index;
+        String line = vmCmdMapping.get(VmCmd.VM_POP) + " " + segmentToStringMapping.get(segment) + " " + index;
 
         if(segment == Segment.SEG_CONSTANT) {
             writeVMLine("======== ERROR: " + line + " ========");

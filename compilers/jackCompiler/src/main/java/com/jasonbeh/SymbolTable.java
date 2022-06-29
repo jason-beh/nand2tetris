@@ -12,14 +12,16 @@ public class SymbolTable {
     }
 
     private Map<Kind, Integer> kindCounterMapping;
-    private Map<Kind, String> kindSegmentMapping;
+    private Map<Kind, String> kindToStringMapping;
+    private Map<String, Kind> stringToKindMapping;
 
     private final Map<String, Symbol> classSymbolTable;
     private final Map<String, Symbol> subroutineSymbolTable;
 
     public SymbolTable() {
         initializeCounters();
-        initializeKindSegmentMapping();
+        initializeKindToStringMapping();
+        initializeStringToKindMapping();
 
         classSymbolTable = new HashMap<>();
 
@@ -33,15 +35,23 @@ public class SymbolTable {
         kindCounterMapping.put(Kind.KIND_FIELD, 0);
     }
 
-    private void initializeKindSegmentMapping() {
-        kindSegmentMapping = new HashMap<>();
-        kindSegmentMapping.put(Kind.KIND_STATIC, "static");
-        kindSegmentMapping.put(Kind.KIND_FIELD, "field");
-        kindSegmentMapping.put(Kind.KIND_ARG, "argument");
-        kindSegmentMapping.put(Kind.KIND_VAR, "var");
+    private void initializeStringToKindMapping() {
+        stringToKindMapping = new HashMap<>();
+        stringToKindMapping.put("static", Kind.KIND_STATIC);
+        stringToKindMapping.put("field", Kind.KIND_FIELD);
+        stringToKindMapping.put("argument", Kind.KIND_ARG);
+        stringToKindMapping.put("var", Kind.KIND_VAR);
     }
 
-    private void initializeSubroutineScope() {
+    private void initializeKindToStringMapping() {
+        kindToStringMapping = new HashMap<>();
+        kindToStringMapping.put(Kind.KIND_STATIC, "static");
+        kindToStringMapping.put(Kind.KIND_FIELD, "field");
+        kindToStringMapping.put(Kind.KIND_ARG, "argument");
+        kindToStringMapping.put(Kind.KIND_VAR, "var");
+    }
+
+    public void initializeSubroutineScope() {
         subroutineSymbolTable.clear();
         kindCounterMapping.put(Kind.KIND_ARG, 0);
         kindCounterMapping.put(Kind.KIND_VAR, 0);
@@ -88,7 +98,7 @@ public class SymbolTable {
             return null;
         }
 
-        return kindSegmentMapping.get(symbol.getKind());
+        return kindToStringMapping.get(symbol.getKind());
     }
 
     public int indexOf(String name) {
@@ -114,5 +124,9 @@ public class SymbolTable {
         
         // Increment counter
         kindCounterMapping.put(kind, counter + 1);
+    }
+
+    public Kind stringToKind(String kindString) {
+        return stringToKindMapping.get(kindString);
     }
 }

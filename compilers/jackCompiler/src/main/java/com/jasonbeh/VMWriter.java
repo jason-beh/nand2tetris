@@ -48,6 +48,7 @@ public class VMWriter {
     private Map<String, Segment> stringToSegmentMapping;
     private Map<ArithmeticCmd, String> arithmeticCmdMapping;
     private Map<VmCmd, String> vmCmdMapping;
+    private Map<String, Segment> kindStringToSegmentMapping;
 
     public VMWriter(File output) {
         try {
@@ -55,6 +56,7 @@ public class VMWriter {
             initializeStringToSegmentMapping();
             initializeArithmeticCmdMapping();
             initializeVMCmdMapping();
+            initializeKindStringToSegmentMapping();
             vmCode = new BufferedWriter(new FileWriter(output));
         } catch (IOException e) {
             e.printStackTrace();
@@ -110,8 +112,20 @@ public class VMWriter {
         vmCmdMapping.put(VmCmd.VM_RETURN, "return");
     }
 
+    private void initializeKindStringToSegmentMapping() {
+        kindStringToSegmentMapping = new HashMap<>();
+        kindStringToSegmentMapping.put("field", Segment.SEG_THIS);
+        kindStringToSegmentMapping.put("static", Segment.SEG_STATIC);
+        kindStringToSegmentMapping.put("var", Segment.SEG_LOCAL);
+        kindStringToSegmentMapping.put("argument", Segment.SEG_ARGUMENT);
+    }
+
     public Segment stringToSegment(String segmentString) {
-        return stringToSegment(segmentString);
+        return stringToSegmentMapping.get(segmentString);
+    }
+
+    public Segment kindStringToSegment(String kindString) {
+        return kindStringToSegmentMapping.get(kindString);
     }
 
     private void writeVMLine(String line) throws IOException {
@@ -125,7 +139,7 @@ public class VMWriter {
     public void writePop(Segment segment, int index) throws IOException {
         String line = vmCmdMapping.get(VmCmd.VM_POP) + " " + segmentToStringMapping.get(segment) + " " + index;
 
-        if(segment == Segment.SEG_CONSTANT) {
+        if (segment == Segment.SEG_CONSTANT) {
             writeVMLine("======== ERROR: " + line + " ========");
             return;
         }

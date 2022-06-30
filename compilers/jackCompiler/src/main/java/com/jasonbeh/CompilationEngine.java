@@ -10,25 +10,27 @@ public class CompilationEngine {
         public String getName() {
             return name;
         }
+
         public String getType() {
             return type;
         }
     }
 
     private int counter;
+    private String className;
     private final SymbolTable symbolTable;
     private final VMWriter vmWriter;
     private final JackTokenizer jackTokenizer;
+    private boolean isAssigningToArray;
 
-    private String className;
 
     public CompilationEngine(File sourceFile, File targetFile) throws IOException {
         symbolTable = new SymbolTable();
         vmWriter = new VMWriter(targetFile);
         jackTokenizer = new JackTokenizer(sourceFile);
         counter = 0;
+        isAssigningToArray = false;
 
-        advanceTokenIfPossible();
         compileClass();
     }
 
@@ -73,8 +75,8 @@ public class CompilationEngine {
 
         while (jackTokenizer.tokenType() == JackTokenizer.TokenType.TOKEN_KEYWORD) {
             // ensure it is static or field for class level variables
-            if (!(jackTokenizer.keyword().equals("static") || jackTokenizer.keyword().equals("field"))) {
-                continue;
+            if (!(isCurrentTokenKeyword("static") || isCurrentTokenKeyword("field"))) {
+                break;
             }
 
             // variable symbol table kind
@@ -202,6 +204,7 @@ public class CompilationEngine {
 
             // variable data type
             String varType = jackTokenizer.identifier();
+            advanceTokenIfPossible();
 
             // get all list of variable names
             List<String> varNames = getVarNames();
@@ -245,9 +248,6 @@ public class CompilationEngine {
 
         // array indexing
         if (isCurrentTokenSymbol('[')) {
-            // Push current varName to setup for subsequent calculation
-            vmWriter.writePush(vmWriter.stringToSegment(symbolTable.kindOf(varName)), symbolTable.indexOf(varName));
-
             // [
             jackTokenizer.symbol();
             advanceTokenIfPossible();
@@ -255,9 +255,15 @@ public class CompilationEngine {
             // Expression
             compileExpression();
 
+            // Push current varName to setup for subsequent calculation
+            vmWriter.writePush(vmWriter.kindStringToSegment(symbolTable.kindOf(varName)), symbolTable.indexOf(varName));
+
             // ]
             jackTokenizer.symbol();
             advanceTokenIfPossible();
+
+            // TODO: Add LL(2) support for arrays
+            // e.g. let arr[0] = arr[1];
 
             // Add offset and pop into pointer 1
             vmWriter.writeArithmetic(VMWriter.ArithmeticCmd.ARITHMETIC_ADD);
@@ -268,6 +274,7 @@ public class CompilationEngine {
             advanceTokenIfPossible();
 
             // Expression
+            isAssigningToArray = true;
             compileExpression();
 
             // ;
@@ -292,7 +299,7 @@ public class CompilationEngine {
             advanceTokenIfPossible();
 
             // Pop to the variable
-            vmWriter.writePop(vmWriter.stringToSegment(symbolTable.kindOf(varName)), symbolTable.indexOf(varName));
+            vmWriter.writePop(vmWriter.kindStringToSegment(symbolTable.kindOf(varName)), symbolTable.indexOf(varName));
         }
     }
 
@@ -320,7 +327,7 @@ public class CompilationEngine {
         advanceTokenIfPossible();
 
         // label loop
-        vmWriter.writeLabel("WHILE_BEGIN" + counter);
+        vmWriter.writeLabel("WHILE_EXP" + counter);
 
         // (
         jackTokenizer.symbol();
@@ -348,7 +355,7 @@ public class CompilationEngine {
         jackTokenizer.symbol();
         advanceTokenIfPossible();
 
-        vmWriter.writeGoto("WHILE_BEGIN" + counter);
+        vmWriter.writeGoto("WHILE_EXP" + counter);
         vmWriter.writeLabel("WHILE_END" + counter);
 
         counter++;
@@ -496,28 +503,28 @@ public class CompilationEngine {
         // e.g. num1 + num2
 
         if (jackTokenizer.tokenType() == JackTokenizer.TokenType.TOKEN_INT_CONST
-         || jackTokenizer.tokenType() == JackTokenizer.TokenType.TOKEN_STRING_CONST
-         || isCurrentTokenSymbol('(') // e.g. (num1 + num2)
-         || isCurrentTokenSymbol('-') // negative (unary)
-         || isCurrentTokenSymbol('~') // not (unary)
-         || isCurrentTokenKeyword("true") // true (keywordConstant)
-         || isCurrentTokenKeyword("false") // false (keywordConstant)
-         || isCurrentTokenKeyword("null") // null (keywordConstant)
-         || isCurrentTokenKeyword("this") // this (keywordConstant)
-         || jackTokenizer.tokenType() == JackTokenizer.TokenType.TOKEN_IDENTIFIER) {
+                || jackTokenizer.tokenType() == JackTokenizer.TokenType.TOKEN_STRING_CONST
+                || isCurrentTokenSymbol('(') // e.g. (num1 + num2)
+                || isCurrentTokenSymbol('-') // negative (unary)
+                || isCurrentTokenSymbol('~') // not (unary)
+                || isCurrentTokenKeyword("true") // true (keywordConstant)
+                || isCurrentTokenKeyword("false") // false (keywordConstant)
+                || isCurrentTokenKeyword("null") // null (keywordConstant)
+                || isCurrentTokenKeyword("this") // this (keywordConstant)
+                || jackTokenizer.tokenType() == JackTokenizer.TokenType.TOKEN_IDENTIFIER) {
 
             // Compile the current term
             compileTerm();
 
             while (isCurrentTokenSymbol('+')
-                || isCurrentTokenSymbol('-')
-                || isCurrentTokenSymbol('*')
-                || isCurrentTokenSymbol('/')
-                || isCurrentTokenSymbol('&')
-                || isCurrentTokenSymbol('|')
-                || isCurrentTokenSymbol('<')
-                || isCurrentTokenSymbol('>')
-                || isCurrentTokenSymbol('=')) {
+                    || isCurrentTokenSymbol('-')
+                    || isCurrentTokenSymbol('*')
+                    || isCurrentTokenSymbol('/')
+                    || isCurrentTokenSymbol('&')
+                    || isCurrentTokenSymbol('|')
+                    || isCurrentTokenSymbol('<')
+                    || isCurrentTokenSymbol('>')
+                    || isCurrentTokenSymbol('=')) {
                 char operator = jackTokenizer.symbol();
                 advanceTokenIfPossible();
 
@@ -548,7 +555,7 @@ public class CompilationEngine {
     }
 
     private void compileTerm() throws IOException {
-        if(jackTokenizer.tokenType() == JackTokenizer.TokenType.TOKEN_INT_CONST) {
+        if (jackTokenizer.tokenType() == JackTokenizer.TokenType.TOKEN_INT_CONST) {
             int intValue = jackTokenizer.intVal();
             advanceTokenIfPossible();
 
@@ -556,89 +563,22 @@ public class CompilationEngine {
             return;
         }
 
-        if(jackTokenizer.tokenType() == JackTokenizer.TokenType.TOKEN_STRING_CONST) {
-            String stringValue = jackTokenizer.stringVal();
-            advanceTokenIfPossible();
-
-            int stringLength = stringValue.length();
-
-            // VM code to create a string by calling appendCar n times
-            vmWriter.writePush(VMWriter.Segment.SEG_CONSTANT, stringLength);
-            vmWriter.writeCall("String.new", 1);
-            for(int c = 0; c < stringLength; c++) {
-                vmWriter.writePush(VMWriter.Segment.SEG_CONSTANT, stringValue.charAt(c));
-                vmWriter.writeCall("String.appendChar", 2);
-            }
-
-            return;
-        }
-
-        // Compile unary
-        if(isCurrentTokenSymbol('-') || isCurrentTokenSymbol('~')) {
-            // e.g. ~isSafeToEat
-
-            char operator = jackTokenizer.symbol();
-            advanceTokenIfPossible();
-
-            // Compile the following term
-            compileTerm();
-
-            // Write VM Code
-            switch (operator) {
-                case '-' -> vmWriter.writeArithmetic(VMWriter.ArithmeticCmd.ARITHMETIC_NEG);
-                case '~' -> vmWriter.writeArithmetic(VMWriter.ArithmeticCmd.ARITHMETIC_NOT);
-            }
-
-            return;
-        }
-
-        if(isCurrentTokenSymbol('(')) {
-            // (
-            jackTokenizer.symbol();
-            advanceTokenIfPossible();
-
-            // compile rest of expression
-            compileExpression();
-
-            // )
-            jackTokenizer.symbol();
-            advanceTokenIfPossible();
-
-            return;
-        }
-
-        // Compile keywordConstant
-        if(isCurrentTokenKeyword("true") || isCurrentTokenKeyword("false") || isCurrentTokenKeyword("null") || isCurrentTokenKeyword("this")) {
-            String keyword = jackTokenizer.keyword();
-            advanceTokenIfPossible();
-
-            switch (keyword) {
-                case "this" -> vmWriter.writePush(VMWriter.Segment.SEG_THIS, 0);
-                case "null", "false" -> vmWriter.writePush(VMWriter.Segment.SEG_CONSTANT, 0);
-                case "true" -> {
-                    // When we not 0, it becomes -1 (true)
-                    vmWriter.writePush(VMWriter.Segment.SEG_CONSTANT, 0);
-                    vmWriter.writeArithmetic(VMWriter.ArithmeticCmd.ARITHMETIC_NOT);
-                }
-            }
-
-            return;
-        }
-
-        if(jackTokenizer.tokenType() == JackTokenizer.TokenType.TOKEN_IDENTIFIER) {
+        if (jackTokenizer.tokenType() == JackTokenizer.TokenType.TOKEN_IDENTIFIER) {
             String initialIdentifier = jackTokenizer.identifier();
             advanceTokenIfPossible();
 
-            if(isCurrentTokenSymbol('[')) {
-                // Push variable to top of stack
-                vmWriter.writePush(vmWriter.stringToSegment(symbolTable.kindOf(initialIdentifier)), symbolTable.indexOf(initialIdentifier));
-
+            if (isCurrentTokenSymbol('[')) {
+                System.out.println(isAssigningToArray);
+                System.out.println(initialIdentifier);
                 // [
                 jackTokenizer.symbol();
                 advanceTokenIfPossible();
 
                 // Compile rest of expression in []
                 compileExpression();
+
+                // Push variable to top of stack
+                vmWriter.writePush(vmWriter.kindStringToSegment(symbolTable.kindOf(initialIdentifier)), symbolTable.indexOf(initialIdentifier));
 
                 // ]
                 jackTokenizer.symbol();
@@ -655,7 +595,7 @@ public class CompilationEngine {
             }
 
             // A method is called on current object
-            if(isCurrentTokenSymbol('(')) {
+            if (isCurrentTokenSymbol('(')) {
                 // Push "this" onto stack
                 vmWriter.writePush(VMWriter.Segment.SEG_POINTER, 0);                                             // class object
 
@@ -677,7 +617,7 @@ public class CompilationEngine {
                 return;
             }
 
-            if(isCurrentTokenSymbol('.')) {
+            if (isCurrentTokenSymbol('.')) {
                 // .
                 jackTokenizer.symbol();
                 advanceTokenIfPossible();
@@ -686,7 +626,7 @@ public class CompilationEngine {
                 advanceTokenIfPossible();
 
                 // If we can't find the initial identifier in the symbol table, it must belong to another class
-                if(symbolTable.indexOf(initialIdentifier) < 0) {
+                if (symbolTable.indexOf(initialIdentifier) < 0) {
                     // (
                     jackTokenizer.symbol();
                     advanceTokenIfPossible();
@@ -701,7 +641,7 @@ public class CompilationEngine {
                     // Call subroutine from another class
                     vmWriter.writeCall(initialIdentifier + "." + subsequentIdentifier, nArgs);
                 } else {
-                    vmWriter.writePush(vmWriter.stringToSegment(symbolTable.kindOf(initialIdentifier)), symbolTable.indexOf(initialIdentifier));
+                    vmWriter.writePush(vmWriter.kindStringToSegment(symbolTable.kindOf(initialIdentifier)), symbolTable.indexOf(initialIdentifier));
 
                     // (
                     jackTokenizer.symbol();
@@ -722,7 +662,76 @@ public class CompilationEngine {
             }
 
             // If it's not any of the above, just add the identifier to symbol table
-            vmWriter.writePush(vmWriter.stringToSegment(symbolTable.kindOf(initialIdentifier)), symbolTable.indexOf(initialIdentifier));
+            vmWriter.writePush(vmWriter.kindStringToSegment(symbolTable.kindOf(initialIdentifier)), symbolTable.indexOf(initialIdentifier));
+        }
+
+        if (jackTokenizer.tokenType() == JackTokenizer.TokenType.TOKEN_STRING_CONST) {
+            String stringValue = jackTokenizer.stringVal();
+            advanceTokenIfPossible();
+
+            int stringLength = stringValue.length();
+
+            // VM code to create a string by calling appendCar n times
+            vmWriter.writePush(VMWriter.Segment.SEG_CONSTANT, stringLength);
+            vmWriter.writeCall("String.new", 1);
+            for (int c = 0; c < stringLength; c++) {
+                vmWriter.writePush(VMWriter.Segment.SEG_CONSTANT, stringValue.charAt(c));
+                vmWriter.writeCall("String.appendChar", 2);
+            }
+
+            return;
+        }
+
+        // Compile unary
+        if (isCurrentTokenSymbol('-') || isCurrentTokenSymbol('~')) {
+            // e.g. ~isSafeToEat
+
+            char operator = jackTokenizer.symbol();
+            advanceTokenIfPossible();
+
+            // Compile the following term
+            compileTerm();
+
+            // Write VM Code
+            switch (operator) {
+                case '-' -> vmWriter.writeArithmetic(VMWriter.ArithmeticCmd.ARITHMETIC_NEG);
+                case '~' -> vmWriter.writeArithmetic(VMWriter.ArithmeticCmd.ARITHMETIC_NOT);
+            }
+
+            return;
+        }
+
+        if (isCurrentTokenSymbol('(')) {
+            // (
+            jackTokenizer.symbol();
+            advanceTokenIfPossible();
+
+            // compile rest of expression
+            compileExpression();
+
+            // )
+            jackTokenizer.symbol();
+            advanceTokenIfPossible();
+
+            return;
+        }
+
+        // Compile keywordConstant
+        if (isCurrentTokenKeyword("true") || isCurrentTokenKeyword("false") || isCurrentTokenKeyword("null") || isCurrentTokenKeyword("this")) {
+            String keyword = jackTokenizer.keyword();
+            advanceTokenIfPossible();
+
+            switch (keyword) {
+                case "this" -> vmWriter.writePush(VMWriter.Segment.SEG_POINTER, 0);
+                case "null", "false" -> vmWriter.writePush(VMWriter.Segment.SEG_CONSTANT, 0);
+                case "true" -> {
+                    // When we not 0, it becomes -1 (true)
+                    vmWriter.writePush(VMWriter.Segment.SEG_CONSTANT, 0);
+                    vmWriter.writeArithmetic(VMWriter.ArithmeticCmd.ARITHMETIC_NOT);
+                }
+            }
+
+            return;
         }
     }
 

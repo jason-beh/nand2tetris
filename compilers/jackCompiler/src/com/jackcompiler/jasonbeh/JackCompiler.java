@@ -1,14 +1,14 @@
-package com.vmtranslator.jasonbeh;
+package com.jackcompiler.jasonbeh;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.StringWriter;
 
-public class Main {
+public class JackCompiler {
     public static void main(String[] args) {
         // No source file
         if (args.length == 0) {
-            System.err.println("Usage: Main.java [source-file]");
+            System.err.println("Usage: java JackCompiler [absolute-path-to-source-file]");
             System.exit(1);
         }
 
@@ -19,15 +19,14 @@ public class Main {
             System.exit(2);
         }
 
-        // Get output file
+        // Get output file.
         String sourceAbsolutePath = sourceFile.getAbsolutePath();
         String fileName = sourceFile.getName();
         String fileNameWithoutExtension = fileName.substring(0, fileName.lastIndexOf("."));
         String sourceDirectory = sourceAbsolutePath.substring(0, sourceFile.getAbsolutePath().indexOf(sourceFile.getName()));
 
-        // Get absolute path and add asm file
-        String outputFileAbsolutePath = sourceDirectory + fileNameWithoutExtension + ".asm";
-        System.out.println(outputFileAbsolutePath);
+        // Get absolute path and add vm file
+        String outputFileAbsolutePath = sourceDirectory + fileNameWithoutExtension + ".vm";
         File outputFile = new File(outputFileAbsolutePath);
 
         try {
@@ -48,13 +47,13 @@ public class Main {
             long startTime = System.currentTimeMillis();
 
             // Translate source file.
-            VMTranslator vmTranslator = new VMTranslator();
-            vmTranslator.translate(sourceFile, outputFile);
+            CompilationEngine compilationEngine = new CompilationEngine(sourceFile, outputFile);
+            compilationEngine.close();
 
             long endTime = System.currentTimeMillis();
             long elapsedTime = endTime - startTime;
 
-            message.append("\nTranslated VM to ASM file in ").append(Long.toString(elapsedTime)).append("ms.");
+            message.append("\nTranslated Jack to VM file in ").append(Long.toString(elapsedTime)).append("ms.");
 
             System.out.println(message);
         } catch (IOException e) {
